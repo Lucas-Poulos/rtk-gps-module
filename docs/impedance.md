@@ -1,12 +1,12 @@
 # Impedance and the RF path
 
 Everything on this board that matters at 1.2–1.6 GHz, and why each number
-is what it is. The numbers here are not prose — `scripts/calc_impedance.py`
-derives them, `gen_project.py` imports the result into the RF netclass, and
-`verify_project.py` fails if the three ever disagree.
+is what it is. The numbers here are not prose — `tools/calc_impedance.py`
+derives them, and `make check` fails if the project's RF netclass drifts
+away from what the model says.
 
 ```
-python3 scripts/calc_impedance.py
+make impedance
 ```
 
 ## Why the receiver cares

@@ -84,8 +84,8 @@ Short version:
   part of the impedance, not optional.
 - The ESD diode is **0.25 pF**. An ordinary ESD part at 10–50 pF would
   shunt the antenna signal away.
-- The number lives in `scripts/calc_impedance.py`, is imported into the RF
-  netclass, and `verify_project.py` fails if they drift apart.
+- The number lives in `tools/calc_impedance.py`, and `make check` fails
+  if the project's RF netclass drifts away from it.
 
 ## Pinout
 
@@ -134,68 +134,61 @@ pulldowns, so the fitted board needs no strapping parts at all.
 ## Repository layout
 
 ```
-Makefile       every routine task -- run `make` to list them
-.githooks/     pre-commit gate, installed by `make hooks`
-design/        generated KiCad 10 project -- OUTPUT, never hand-edited
+design/        THE PROJECT. Open it in KiCad, edit it, save it.
   lib/         the two symbols and three footprints stock KiCad lacks
-scripts/       the actual source of truth
-  calc_impedance.py      derives the 50 Ω geometry
-  gen_custom_symbols.py  LC29H + SAW symbols, from the datasheets
-  gen_footprints.py      LC29H, SAW and castellated land patterns
-  gen_project.py         parts catalogue and placement
-  wire_sheets.py         connectivity, one function per sheet
-  gen_bom.py             BOM from the netlist
-  fetch_datasheets.py    pulls the vendor PDFs (not committed)
-  verify_project.py      the gate
+tools/         helpers that READ design/ -- none of them write to it
+  check.py             ERC + netlist + sourcing + impedance
+  gen_bom.py           BOM, read from the schematic
+  calc_impedance.py    the 50 Ω derivation
+  fetch_datasheets.py  pulls the vendor PDFs (not committed)
+  bootstrap/           the generators that built v1 -- NOT authoritative
+Makefile       run `make` to list every target
+.githooks/     optional pre-commit hook, ERC errors only
 manufacturing/ BOM.md, BOM-dnp.md, bom_jlcpcb.csv
-docs/          making-changes.md, impedance.md, schematic.pdf
+docs/          editing.md, impedance.md, schematic.pdf
 datasheets/    README + fetch script; the PDFs are not ours to redistribute
-analysis/      ERC report and exported netlist (gitignored, regenerated)
+analysis/      ERC report and netlist (gitignored, regenerated on demand)
 ```
 
-**`design/` is generated.** Editing a `.kicad_sch` by hand and then running
-a generator destroys the edit. Change the scripts.
+**`design/` is a normal KiCad project.** Edit it directly. Nothing
+regenerates it, and nothing in `tools/` writes to it.
 
-## Reproducing
+## Working on it
 
 ```bash
+make open       # open in KiCad -- edit and save freely
+make check      # ERC + netlist + sourcing + impedance, all read-only
+make bom        # rebuild manufacturing/ after a parts change
 make            # list every target
-make all        # regenerate design/, BOM and PDF, then run the gate
-make verify     # the gate on its own -- 146 checks
-make hooks      # once: install the pre-commit hook that runs the gate
 ```
 
-`make open` launches the schematic read-only; `make impedance` prints the
-50 Ω derivation; `make netlist` dumps every net with its netclass.
+Read **[docs/editing.md](docs/editing.md)** before changing the RF path
+or anything on the LC29H — there are four traps on this board that KiCad
+will not warn you about (a 3.08 V limit on `RXD1`, a 1.8 V pin domain,
+two supply pins that are outputs, and three pins that must float).
 
-**To change something, edit `scripts/` — see
-[docs/making-changes.md](docs/making-changes.md)** for recipes (change a
-value, add a part, rewire a net, move the impedance target) and for what
-each gate failure means. `make regen` refuses to run while KiCad has the
-project open.
+`make check` reads `design/` and never writes to it. It exports a fresh
+netlist and a fresh ERC report and asserts against those:
 
-`verify_project.py` checks the generated output, not the generator's
-intentions. It exports a fresh netlist and a fresh ERC report and asserts
-against those:
-
-- **Determinism** — three snapshots, so "`design/` is stale" and "the
-  generator is non-deterministic" are reported as the different bugs they
-  are.
 - **ERC** — must be clean *and* the report must be newly written. A stale
-  report from an earlier run reads exactly like a pass. This was verified by
+  report from an earlier run reads exactly like a pass, and `kicad-cli`
+  writes no report at all when the schematic fails to parse. Verified by
   injecting a deliberate fault and confirming ERC caught it on the right
   sub-sheet.
-- **Connectivity** — the nets that carry the design's meaning are asserted
-  pin by pin, so nothing can quietly reroute the RF path or drop the
-  divider off RXD1.
 - **Netclass** — the exported per-net class is read back, because KiCad
   accepts a netclass pattern that matches nothing without complaining and
-  a 50 Ω line silently falls back to the default width. *(This caught a
-  real bug: `/regex/` patterns are accepted by the file format and match
-  nothing — KiCad uses wildcards, and local nets carry their sheet path.)*
-- **Arithmetic** — divider ratios, choke reactances and LDO headroom are
-  re-derived and compared against the values actually placed.
+  a 50 Ω line silently falls back to the default track width. *(This
+  caught a real bug: `/regex/` patterns are accepted by the file format
+  and match nothing — KiCad uses wildcards, and local nets carry their
+  sheet path.)*
+- **Critical nets** — the RF chain, the bias tee and the RXD1 divider are
+  asserted pin by pin, so none of them gets rerouted by accident. Rewire
+  one on purpose and it tells you exactly what changed.
+- **LC29H pin rules** — grounds grounded, the three RESERVED pins still
+  floating, `VDD_EXT` never tied to 3V3.
 - **Sourcing** — every fitted part must carry a resolved `Cxxxxx`.
+- **Impedance** — the RF netclass width must still match what
+  `tools/calc_impedance.py` derives, and still land within 5 % of 50 Ω.
 
 ## Building one
 

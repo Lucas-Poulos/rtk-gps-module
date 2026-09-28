@@ -46,7 +46,7 @@ answer barely moves across 4.1-4.5, so the exact figure is not critical.
 
 Usage
 -----
-    python3 scripts/calc_impedance.py
+    python3 tools/calc_impedance.py
 """
 from __future__ import annotations
 

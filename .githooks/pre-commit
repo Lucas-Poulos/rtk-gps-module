@@ -1,48 +1,41 @@
 #!/bin/sh
-# rtk-gps-module pre-commit gate.
+# rtk-gps-module pre-commit.
 #
-# design/ is generated from scripts/. The two ways this repo goes wrong are
-# committing design/ that no longer matches scripts/, and committing a
-# schematic that does not pass ERC. Both are silent -- the files look fine.
-# So the gate runs here, not just when someone remembers.
+# design/ is hand-edited now, so this hook does NOT regenerate anything
+# and does NOT block on style. It blocks on exactly one thing: an ERC
+# ERROR in a commit that touches design/. Warnings never block.
 #
-# Bypass with --no-verify if you genuinely need to (a WIP branch, say).
+# Remove with `make unhook`, or bypass once with `git commit --no-verify`.
 
-set -e
+git diff --cached --name-only | grep -q '^design/' || exit 0
 
-# Nothing to check if the commit touches no design input or output.
-if git diff --cached --name-only | grep -qE '^(scripts/|design/)'; then
-    :
-else
+if ls design/*.lck design/~*.lck >/dev/null 2>&1; then
+    echo "pre-commit: KiCad has the project open; skipping ERC."
+    echo "  (Save and close, then 'make check' when you get a chance.)"
     exit 0
 fi
 
-if ls design/*.lck design/~*.lck >/dev/null 2>&1; then
-    echo "pre-commit: this project is open in KiCad."
-    echo "  The gate regenerates design/, which would fight the GUI."
-    echo "  Close KiCad and commit again."
+mkdir -p analysis
+rm -f analysis/erc.rpt
+kicad-cli sch erc --output analysis/erc.rpt --severity-all \
+    design/rtk-gps-module.kicad_sch >/dev/null 2>&1
+
+if [ ! -f analysis/erc.rpt ]; then
+    echo "pre-commit: BLOCKED -- ERC produced no report."
+    echo "  That usually means the schematic does not parse."
     exit 1
 fi
 
-echo "pre-commit: running the gate (make verify)..."
-if ! make verify; then
+errors=$(sed -n 's/.*ERC messages: [0-9]*  *Errors \([0-9]*\).*/\1/p' analysis/erc.rpt)
+warns=$(sed -n 's/.*Warnings \([0-9]*\).*/\1/p' analysis/erc.rpt)
+
+if [ "${errors:-0}" -gt 0 ]; then
+    echo "pre-commit: BLOCKED -- $errors ERC error(s):"
+    grep -B1 '; error' analysis/erc.rpt | sed 's/^/    /' | head -20
     echo
-    echo "pre-commit: BLOCKED. Fix the above, or 'git commit --no-verify'"
-    echo "  to bypass deliberately."
+    echo "  Fix them, or 'git commit --no-verify' to commit anyway."
     exit 1
 fi
 
-# The gate regenerates design/ as part of its determinism check. If that
-# produced changes, they belong in this commit -- otherwise the tree you
-# push does not match the scripts you push.
-if ! git diff --quiet -- design/; then
-    echo
-    echo "pre-commit: BLOCKED. Regenerating changed design/:"
-    git diff --stat -- design/ | sed 's/^/    /'
-    echo
-    echo "  design/ was out of step with scripts/. It has now been"
-    echo "  rebuilt -- 'git add design/' and commit again."
-    exit 1
-fi
-
-echo "pre-commit: ok"
+[ "${warns:-0}" -gt 0 ] && echo "pre-commit: $warns ERC warning(s) (not blocking)"
+echo "pre-commit: ERC clean"

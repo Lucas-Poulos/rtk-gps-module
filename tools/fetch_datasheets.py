@@ -8,7 +8,7 @@ to check that transcription yourself.
 
 Usage
 -----
-    python3 scripts/fetch_datasheets.py
+    python3 tools/fetch_datasheets.py
 """
 from __future__ import annotations
 

@@ -27,46 +27,52 @@ Nothing else is worth optimising.
 
 ## Ground rules
 
-### design/ is generated — edit the scripts, not the output
+### design/ is the source of truth. Edit it in KiCad.
+
+This project **used to** be generated from Python. It is not any more —
+Lucas asked for a normal editable project on 2026-09-28. The generators
+are frozen in `tools/bootstrap/` and must not be run: they would
+overwrite hand edits with the design as it stood that day.
 
 ```bash
-make all      # regen + bom + pdf + gate. This is the whole loop.
-make verify   # the gate alone -- ALWAYS finish with this
+make open     # open in KiCad, edit and save freely
+make check    # read-only: ERC, netlist, sourcing, impedance
+make bom      # rebuild manufacturing/ after a parts change
 make          # list every target
 ```
 
-`make regen` depends on `guard`, which refuses to write while **this**
-project has lock files in `design/`. A bare `pgrep kicad` is too coarse —
-it also fires when the GUI has some other project open, which is harmless.
-
-`.githooks/pre-commit` (install with `make hooks`) runs the gate on any
-commit touching `scripts/` or `design/`, then blocks if regeneration
-changed `design/` — so the tree pushed always matches the scripts pushed.
-Recipes for common edits are in `docs/making-changes.md`.
-
-Generators use `uuid5`, so re-running produces byte-identical files.
-**Opening the project read-only is fine. Saving from the GUI is not.**
+**Nothing in `tools/` writes to `design/`.** If you need to change the
+design, change it in KiCad or edit the `.kicad_sch` directly — both are
+fine now.
 
 ### Never invent an LCSC part number
 
-Every `Cxxxxx` in `gen_project.py`'s `SOURCING` / `PASSIVES` was resolved
-against the live catalogue with the `lcsc` skill on 2026-09-28.
-`gen_project.check()` refuses to write if a fitted part lacks one, and
-`verify_project.py` re-checks. If you cannot resolve a part, leave it
-absent and let the gate fail — do not guess.
+Every `Cxxxxx` was resolved against the live catalogue with the `lcsc`
+skill on 2026-09-28. `make check` fails if a fitted part lacks one. If
+you cannot resolve a part, leave the field empty and let the check fail
+— do not guess.
 
 ### A clean ERC is a claim that needs proving
 
-`kicad-cli` writes **no report at all** when the schematic fails to parse,
-and says so only on stdout — so a stale report from an earlier run reads
-exactly like a pass. `check_erc()` deletes the report, re-runs, asserts the
-file exists, and asserts its mtime is from this run.
+`kicad-cli` writes **no report at all** when the schematic fails to
+parse, and says so only on stdout — so a stale report from an earlier
+run reads exactly like a pass. `check_erc()` deletes the report,
+re-runs, asserts the file exists, and asserts its mtime is from this run.
 
-This was proven end-to-end by injecting a fault (removing `C204`'s ground)
-and confirming ERC reported `pin_not_connected` on sheet `/GNSS/`. If you
-change the wiring substantially, do that again.
+Proven end-to-end by injecting a fault (removing `C204`'s ground) and
+confirming ERC reported `pin_not_connected` on sheet `/GNSS/`.
 
----
+### Opening the project rewrites every file
+
+The first time eeschema saved, it reformatted all seven files
+(+12045/−6893) — `generator` string and `lib_symbols` indentation — with
+zero design change. That is committed as the baseline. A similar diff on
+any future GUI save is normal; check the netlist, not the line count.
+
+Opening the **Symbol Editor** on a symbol desyncs the schematic's cached
+copy from `design/lib/`, which ERC reports as `lib_symbol_mismatch`.
+Fix with Tools → Update Symbols from Library, or rebuild the library
+from the cache.
 
 ## Things that are easy to get wrong here
 
@@ -151,11 +157,11 @@ sensitivity.
 
 ## The impedance number is derived, not chosen
 
-`scripts/calc_impedance.py` solves the conductor-backed CPW conformal-
+`tools/calc_impedance.py` solves the conductor-backed CPW conformal-
 mapping model for JLCPCB's JLC04161H-3313 stackup and exports
-`RF_TRACE_W = 0.38` mm (50.19 Ω at a 0.2 mm gap). `gen_project.py` imports
-it into the RF netclass; `verify_project.py` asserts the two agree and that
-the width still lands within 5 % of 50 Ω.
+`RF_TRACE_W = 0.38` mm (50.19 Ω at a 0.2 mm gap). `make check` reads the
+RF netclass out of the `.kicad_pro` and fails if it has drifted away from
+that, or if the width no longer lands within 5 % of 50 Ω.
 
 **The trace is CPWG, not microstrip.** The microstrip model says 0.41 mm,
 which would land the line near 47 Ω. Full derivation and the PCB-stage
@@ -163,21 +169,19 @@ layout rules are in `docs/impedance.md`.
 
 ---
 
-## The generator libraries are copied, not shared
+## The frozen generators
 
-`kicad_sch.py` and `kicad_symlib.py` are per-project copies. This project's
-`kicad_sch.py` came from `analog-pid-boiler` (the most recently fixed copy
-— it has the `esc()` newline fix and the `_merge_extends()` parent-first
-fix). A fix made here does **not** propagate to the other projects, and
-vice versa.
+`tools/bootstrap/` holds the Python that built v1. Read it for the
+datasheet transcription (`gen_custom_symbols.py` carries the LC29H
+pinout twice, deliberately, so a typo has to be made twice to survive)
+and the land-pattern derivations. **Do not run any of it.**
 
-`flag_port()` / `flag_label()` in `wire_sheets.py` are local additions:
-`Wirer.flag()` in the shared library places a bare `PWR_FLAG` and ignores
-its `name` argument, so it does not actually attach the flag to a rail.
-These helpers place the power port and the flag at the same coordinate,
-which does.
-
----
+Note for other projects: `kicad_sch.py` and `kicad_symlib.py` are
+per-project copies, not a shared library. This copy came from
+`analog-pid-boiler`. `Wirer.flag()` in it ignores its `name` argument
+and places an unattached `PWR_FLAG`; `wire_sheets.py` here worked around
+that with local `flag_port()` / `flag_label()` helpers. That bug is still
+live in every other project's copy.
 
 ## State
 
@@ -186,7 +190,8 @@ which does.
 - [x] Custom footprints (LC29H LCC-24, SAW SMD1411-5P, castellated 1×12)
 - [x] Five sheets placed and wired, 64 parts
 - [x] ERC 0/0, proven live
-- [x] 146-check gate passing
+- [x] Converted to a normal hand-editable project; generators frozen
+- [x] `make check` (32 read-only checks) passing
 - [x] BOM + JLCPCB CSV
 - [ ] **PCB layout** — next phase. Start from `docs/impedance.md`.
 - [ ] Fab, assemble, bring up. Nothing here is confirmed against hardware.

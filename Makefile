@@ -1,101 +1,58 @@
 # rtk-gps-module
 #
-# design/ is GENERATED. The source of truth is scripts/.
-# Everything you need day to day is a target here -- `make` on its own
-# lists them.
+# This is a normal KiCad project. design/ is the source of truth --
+# open it, edit it, save it. Nothing here regenerates or overwrites it.
+#
+# The targets below are conveniences: run the checks, rebuild the BOM
+# from the schematic, re-plot the PDF.
 
-PY      := python3
-SCH     := design/rtk-gps-module.kicad_sch
-PRO     := design/rtk-gps-module.kicad_pro
-SCRIPTS := scripts
-KICAD   := /Applications/KiCad
-
-# Sheets are all written by one generator run, so they share a stamp file
-# rather than each claiming to be an independent target.
-GENERATED := $(SCH) $(PRO) design/sym-lib-table design/fp-lib-table
-SOURCES   := $(SCRIPTS)/gen_project.py $(SCRIPTS)/wire_sheets.py \
-             $(SCRIPTS)/kicad_sch.py $(SCRIPTS)/calc_impedance.py
-SYMS      := design/lib/rtk-gps-module.kicad_sym
-FPS       := design/lib/rtk-gps-module.pretty
+PY    := python3
+SCH   := design/rtk-gps-module.kicad_sch
+PRO   := design/rtk-gps-module.kicad_pro
+KICAD := /Applications/KiCad
 
 .DEFAULT_GOAL := help
-.PHONY: help all regen syms fps sch bom pdf verify erc netlist \
-        open status clean hooks guard impedance datasheets
-
-# --------------------------------------------------------------------------
+.PHONY: help open check erc netlist bom pdf impedance datasheets \
+        status hooks unhook clean
 
 help:  ## show this help
-	@echo "rtk-gps-module -- design/ is generated, edit scripts/ instead"
+	@echo "rtk-gps-module -- a normal KiCad project. Edit design/ directly."
 	@echo
 	@grep -hE '^[a-z-]+:.*?##' $(MAKEFILE_LIST) \
 	  | sed 's/:.*##/\t/' | awk -F'\t' '{printf "  \033[1m%-12s\033[0m %s\n",$$1,$$2}'
 	@echo
-	@echo "  Typical loop:  edit scripts/  ->  make  ->  read the diff"
-	@echo "  Before committing, the pre-commit hook runs 'make verify'."
-	@echo "  Install it once with 'make hooks'."
-
-all: regen bom pdf verify  ## regenerate everything and run the gate
+	@echo "  Edit in KiCad, save, then 'make check'."
+	@echo "  Nothing in this Makefile writes to design/."
 
 # --------------------------------------------------------------------------
-# Guard: refuse to write under a GUI that has the project open.
-#
-# A bare `pgrep kicad` is too coarse -- it also fires when the GUI has some
-# *other* project open, which is harmless. Only this project's lock files
-# mean the design is actually held.
-# --------------------------------------------------------------------------
-guard:
-	@if ls design/*.lck design/~*.lck >/dev/null 2>&1; then \
-	  echo "REFUSING: this project is open in KiCad."; \
-	  echo "  Close it first -- regenerating underneath the GUI means the"; \
-	  echo "  next GUI save writes stale content back over the output."; \
-	  ls design/*.lck design/~*.lck 2>/dev/null | sort -u | sed 's/^/    /'; \
-	  exit 1; \
-	fi
-
-# --------------------------------------------------------------------------
-# Generation
+# Working on it
 # --------------------------------------------------------------------------
 
-syms: guard  ## rebuild the LC29H and SAW symbols
-	@$(PY) $(SCRIPTS)/gen_custom_symbols.py
+open:  ## open the project in KiCad -- edit and save freely
+	@open -a "$(KICAD)/KiCad.app" $(PRO)
 
-fps: guard  ## rebuild the LC29H, SAW and castellated footprints
-	@$(PY) $(SCRIPTS)/gen_footprints.py
+check:  ## ERC + netlist + sourcing + impedance. Read-only.
+	@$(PY) tools/check.py
 
-sch: guard  ## rebuild the schematic sheets, placement and wiring
-	@$(PY) $(SCRIPTS)/gen_project.py
+bom:  ## rebuild manufacturing/ from the schematic
+	@$(PY) tools/gen_bom.py
 
-regen: syms fps sch  ## rebuild all of design/ from scripts/
-
-bom:  ## rebuild manufacturing/BOM.md and the JLCPCB CSV
-	@$(PY) $(SCRIPTS)/gen_bom.py
-
-pdf:  ## re-plot docs/schematic.pdf
-	@kicad-cli sch export pdf -o docs/schematic.pdf $(SCH) 2>/dev/null \
-	  | grep -v '^$$' || true
+pdf:  ## re-plot docs/schematic.pdf from the schematic
+	@kicad-cli sch export pdf -o docs/schematic.pdf $(SCH) 2>/dev/null >/dev/null
 	@echo "  wrote docs/schematic.pdf"
 
-impedance:  ## show the 50 ohm derivation and its tolerance sweep
-	@$(PY) $(SCRIPTS)/calc_impedance.py
-
-datasheets:  ## fetch the vendor PDFs (not committed -- not ours to ship)
-	@$(PY) $(SCRIPTS)/fetch_datasheets.py
-
 # --------------------------------------------------------------------------
-# Checking
+# Looking at it
 # --------------------------------------------------------------------------
 
-verify:  ## THE GATE -- 146 checks. Run this before every commit.
-	@$(PY) $(SCRIPTS)/verify_project.py
-
-erc:  ## run ERC alone and print the report
+erc:  ## run ERC and print the report
 	@mkdir -p analysis
 	@rm -f analysis/erc.rpt
 	@kicad-cli sch erc --output analysis/erc.rpt --severity-all \
 	  --exit-code-violations $(SCH) 2>/dev/null | tail -2 || true
 	@echo "---"; grep -v '^$$' analysis/erc.rpt | tail -20
 
-netlist:  ## export the netlist and print every net with its netclass
+netlist:  ## print every net with its netclass and pin count
 	@mkdir -p analysis
 	@kicad-cli sch export netlist --format kicadsexpr \
 	  -o analysis/netlist.net $(SCH) >/dev/null 2>&1
@@ -108,32 +65,31 @@ rows=[(re.search(r'\(name \"([^\"]*)\"\)',b).group(1), \
 print(f'{len(rows)} nets'); \
 [print(f'  {c:<8} {n:<26} {p:2d} pins') for n,c,p in sorted(rows)]"
 
-status:  ## is design/ in step with scripts/ ?
-	@echo "git:"
+impedance:  ## the 50 ohm derivation and its tolerance sweep
+	@$(PY) tools/calc_impedance.py
+
+datasheets:  ## fetch the vendor PDFs (not committed -- not ours to ship)
+	@$(PY) tools/fetch_datasheets.py
+
+status:  ## git state and whether KiCad has it open
 	@git status --short || true
-	@echo "locks:  $$(ls design/ 2>/dev/null | grep -c lck) (0 means nothing has it open)"
+	@echo "locks:  $$(ls design/ 2>/dev/null | grep -c lck) (non-zero = open in KiCad)"
 	@echo "synced: $$( [ "$$(git rev-parse HEAD)" = "$$(git rev-parse @{u} 2>/dev/null)" ] \
 	  && echo 'yes, matches origin' || echo 'NO -- unpushed or behind' )"
 
 # --------------------------------------------------------------------------
-# Working in the GUI (read-only)
-# --------------------------------------------------------------------------
 
-open:  ## open the schematic in KiCad -- READ ONLY, do not save
-	@echo "Opening read-only. design/ is generated:"
-	@echo "  a GUI save is overwritten by the next 'make regen'."
-	@echo "  To change something, edit scripts/ -- see docs/making-changes.md"
-	@open -a "$(KICAD)/Schematic Editor.app" $(SCH)
-
-# --------------------------------------------------------------------------
-
-hooks:  ## install the pre-commit hook (runs the gate)
+hooks:  ## install a light pre-commit hook (ERC errors only)
 	@git config core.hooksPath .githooks
 	@chmod +x .githooks/pre-commit
-	@echo "  core.hooksPath -> .githooks"
-	@echo "  'git commit' now runs 'make verify' first."
+	@echo "  installed. It blocks only on ERC ERRORS, never on warnings."
+	@echo "  Remove it any time with 'make unhook'."
+
+unhook:  ## remove the pre-commit hook
+	@git config --unset core.hooksPath || true
+	@echo "  hook removed; commits are unchecked now."
 
 clean:  ## remove regenerated analysis output and caches
-	@rm -rf analysis __pycache__ $(SCRIPTS)/__pycache__ design/.history
-	@echo "  cleaned analysis/, __pycache__/, design/.history/"
-	@echo "  design/ itself is NOT touched -- 'make regen' rebuilds it."
+	@rm -rf analysis __pycache__ tools/__pycache__ \
+	        tools/bootstrap/__pycache__ design/.history
+	@echo "  cleaned. design/ is untouched -- it is the source of truth."
