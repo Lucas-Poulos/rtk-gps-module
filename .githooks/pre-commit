@@ -1,0 +1,48 @@
+#!/bin/sh
+# rtk-gps-module pre-commit gate.
+#
+# design/ is generated from scripts/. The two ways this repo goes wrong are
+# committing design/ that no longer matches scripts/, and committing a
+# schematic that does not pass ERC. Both are silent -- the files look fine.
+# So the gate runs here, not just when someone remembers.
+#
+# Bypass with --no-verify if you genuinely need to (a WIP branch, say).
+
+set -e
+
+# Nothing to check if the commit touches no design input or output.
+if git diff --cached --name-only | grep -qE '^(scripts/|design/)'; then
+    :
+else
+    exit 0
+fi
+
+if ls design/*.lck design/~*.lck >/dev/null 2>&1; then
+    echo "pre-commit: this project is open in KiCad."
+    echo "  The gate regenerates design/, which would fight the GUI."
+    echo "  Close KiCad and commit again."
+    exit 1
+fi
+
+echo "pre-commit: running the gate (make verify)..."
+if ! make verify; then
+    echo
+    echo "pre-commit: BLOCKED. Fix the above, or 'git commit --no-verify'"
+    echo "  to bypass deliberately."
+    exit 1
+fi
+
+# The gate regenerates design/ as part of its determinism check. If that
+# produced changes, they belong in this commit -- otherwise the tree you
+# push does not match the scripts you push.
+if ! git diff --quiet -- design/; then
+    echo
+    echo "pre-commit: BLOCKED. Regenerating changed design/:"
+    git diff --stat -- design/ | sed 's/^/    /'
+    echo
+    echo "  design/ was out of step with scripts/. It has now been"
+    echo "  rebuilt -- 'git add design/' and commit again."
+    exit 1
+fi
+
+echo "pre-commit: ok"
