@@ -134,20 +134,23 @@ pulldowns, so the fitted board needs no strapping parts at all.
 ## Repository layout
 
 ```
+Makefile       every routine task -- run `make` to list them
+.githooks/     pre-commit gate, installed by `make hooks`
 design/        generated KiCad 10 project -- OUTPUT, never hand-edited
   lib/         the two symbols and three footprints stock KiCad lacks
 scripts/       the actual source of truth
-  calc_impedance.py    derives the 50 Ω geometry
+  calc_impedance.py      derives the 50 Ω geometry
   gen_custom_symbols.py  LC29H + SAW symbols, from the datasheets
-  gen_footprints.py    LC29H, SAW and castellated land patterns
-  gen_project.py       parts catalogue and placement
-  wire_sheets.py       connectivity, one function per sheet
-  gen_bom.py           BOM from the netlist
-  verify_project.py    the gate
+  gen_footprints.py      LC29H, SAW and castellated land patterns
+  gen_project.py         parts catalogue and placement
+  wire_sheets.py         connectivity, one function per sheet
+  gen_bom.py             BOM from the netlist
+  fetch_datasheets.py    pulls the vendor PDFs (not committed)
+  verify_project.py      the gate
 manufacturing/ BOM.md, BOM-dnp.md, bom_jlcpcb.csv
-docs/          impedance.md, schematic.pdf
-datasheets/    cached PDFs the design was transcribed from
-analysis/      ERC report and exported netlist
+docs/          making-changes.md, impedance.md, schematic.pdf
+datasheets/    README + fetch script; the PDFs are not ours to redistribute
+analysis/      ERC report and exported netlist (gitignored, regenerated)
 ```
 
 **`design/` is generated.** Editing a `.kicad_sch` by hand and then running
@@ -156,12 +159,20 @@ a generator destroys the edit. Change the scripts.
 ## Reproducing
 
 ```bash
-python3 scripts/gen_custom_symbols.py
-python3 scripts/gen_footprints.py
-python3 scripts/gen_project.py
-python3 scripts/gen_bom.py
-python3 scripts/verify_project.py     # the gate -- 146 checks
+make            # list every target
+make all        # regenerate design/, BOM and PDF, then run the gate
+make verify     # the gate on its own -- 146 checks
+make hooks      # once: install the pre-commit hook that runs the gate
 ```
+
+`make open` launches the schematic read-only; `make impedance` prints the
+50 Ω derivation; `make netlist` dumps every net with its netclass.
+
+**To change something, edit `scripts/` — see
+[docs/making-changes.md](docs/making-changes.md)** for recipes (change a
+value, add a part, rewire a net, move the impedance target) and for what
+each gate failure means. `make regen` refuses to run while KiCad has the
+project open.
 
 `verify_project.py` checks the generated output, not the generator's
 intentions. It exports a fresh netlist and a fresh ERC report and asserts

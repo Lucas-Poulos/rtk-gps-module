@@ -30,17 +30,19 @@ Nothing else is worth optimising.
 ### design/ is generated — edit the scripts, not the output
 
 ```bash
-# Guard: only THIS project's locks matter. A bare `pgrep kicad` also
-# fires when the GUI has some other project open, which is harmless.
-ls design/*.lck design/~*.lck 2>/dev/null && echo "OPEN IN KICAD - STOP"
-
-python3 scripts/gen_custom_symbols.py
-python3 scripts/gen_footprints.py
-python3 scripts/gen_project.py --verify   # gate: refuses to write on failure
-python3 scripts/gen_project.py
-python3 scripts/gen_bom.py
-python3 scripts/verify_project.py         # ALWAYS finish with this
+make all      # regen + bom + pdf + gate. This is the whole loop.
+make verify   # the gate alone -- ALWAYS finish with this
+make          # list every target
 ```
+
+`make regen` depends on `guard`, which refuses to write while **this**
+project has lock files in `design/`. A bare `pgrep kicad` is too coarse —
+it also fires when the GUI has some other project open, which is harmless.
+
+`.githooks/pre-commit` (install with `make hooks`) runs the gate on any
+commit touching `scripts/` or `design/`, then blocks if regeneration
+changed `design/` — so the tree pushed always matches the scripts pushed.
+Recipes for common edits are in `docs/making-changes.md`.
 
 Generators use `uuid5`, so re-running produces byte-identical files.
 **Opening the project read-only is fine. Saving from the GUI is not.**
