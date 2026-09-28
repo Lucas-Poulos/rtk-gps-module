@@ -1,0 +1,244 @@
+(kicad_sch
+	(version 20260306)
+	(generator "gen_project.py")
+	(generator_version "10.0")
+	(uuid "5b48cc92-ecb5-59d8-98d2-63c4cf129d0d")
+	(paper "A2")
+	(title_block
+		(title "RTK GNSS Module")
+		(rev "A")
+		(company "Lucas Poulos")
+		(comment 1 "Top sheet - hierarchy overview")
+		(comment 2 "LC29H dual-band L1+L5 RTK | discrete bias tee | USB-C + castellated")
+	)
+	(lib_symbols)
+	(text "RTK GNSS MODULE - centimetre positioning from a USB stick"
+		(exclude_from_sim yes)
+		(at 25 215 0)
+		(effects
+			(font
+				(size 2 2)
+				(bold yes)
+			)
+			(justify left bottom)
+		)
+		(uuid "3c59ef7b-ce32-544e-ab5d-66891c33c9a5")
+	)
+	(text "LC29H (DA) dual-band L1+L5 RTK rover. Feed it RTCM3 over the UART\nand it resolves carrier phase to ~1-2 cm horizontal. Corrections\ncome from the host -- an NTRIP client on a phone, a Pi or a PC --\nso there is no radio on the board and nothing to license."
+		(exclude_from_sim yes)
+		(at 25 228 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "abba4e1a-eb75-5a39-b151-1123898a8c07")
+	)
+	(text "Everything around the receiver is discrete: the bias tee, the\nantenna power switch, the RX attenuator and the 1PPS driver are\nsingle transistors and passives, not modules."
+		(exclude_from_sim yes)
+		(at 25 258 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "485d5614-2eca-56f0-9717-fccacc9ab4ad")
+	)
+	(sheet
+		(at 30 60)
+		(size 65 38)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "475bb503-6ff5-5f63-8823-f25798754dd8")
+		(property "Sheetname" "Power"
+			(at 30 58.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "01_power.kicad_sch"
+			(at 30 99.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "rtk-gps-module"
+				(path "/5b48cc92-ecb5-59d8-98d2-63c4cf129d0d"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 115 60)
+		(size 65 38)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "67735122-fc46-5aa5-98ef-69f629b4c190")
+		(property "Sheetname" "GNSS"
+			(at 115 58.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "02_gnss.kicad_sch"
+			(at 115 99.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "rtk-gps-module"
+				(path "/5b48cc92-ecb5-59d8-98d2-63c4cf129d0d"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 200 60)
+		(size 65 38)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "fe13209b-d5d0-5347-9bf2-c59da95a4041")
+		(property "Sheetname" "RF"
+			(at 200 58.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "03_rf.kicad_sch"
+			(at 200 99.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "rtk-gps-module"
+				(path "/5b48cc92-ecb5-59d8-98d2-63c4cf129d0d"
+					(page "4")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 30 115)
+		(size 65 38)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "a5330b8d-664b-5a6a-b4ac-80a7457ba5da")
+		(property "Sheetname" "USB"
+			(at 30 113.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "04_usb.kicad_sch"
+			(at 30 154.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "rtk-gps-module"
+				(path "/5b48cc92-ecb5-59d8-98d2-63c4cf129d0d"
+					(page "5")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 115 115)
+		(size 65 38)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "b01f4cb7-7140-5415-8ec4-0afc81d6b8cf")
+		(property "Sheetname" "IO"
+			(at 115 113.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "05_io.kicad_sch"
+			(at 115 154.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "rtk-gps-module"
+				(path "/5b48cc92-ecb5-59d8-98d2-63c4cf129d0d"
+					(page "6")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+)

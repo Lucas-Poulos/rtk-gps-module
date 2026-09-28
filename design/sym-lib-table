@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "rtk-gps-module")(type "KiCad")(uri "${KIPRJMOD}/lib/rtk-gps-module.kicad_sym")(options "")(descr "LC29H and B8389 -- symbols no stock library provides"))
+)

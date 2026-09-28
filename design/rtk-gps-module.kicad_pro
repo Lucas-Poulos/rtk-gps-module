@@ -1,0 +1,202 @@
+{
+  "board": {
+    "design_settings": {
+      "defaults": {},
+      "diff_pair_dimensions": [],
+      "drc_exclusions": [],
+      "rules": {},
+      "track_widths": [],
+      "via_dimensions": []
+    }
+  },
+  "boards": [],
+  "libraries": {
+    "pinned_footprint_libs": [],
+    "pinned_symbol_libs": []
+  },
+  "meta": {
+    "filename": "rtk-gps-module.kicad_pro",
+    "version": 1
+  },
+  "net_settings": {
+    "classes": [
+      {
+        "bus_width": 12,
+        "clearance": 0.2,
+        "diff_pair_gap": 0.2,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "line_style": 0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "name": "Default",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.2,
+        "via_diameter": 0.6,
+        "via_drill": 0.3,
+        "wire_width": 6
+      },
+      {
+        "bus_width": 12,
+        "clearance": 0.2,
+        "diff_pair_gap": 0.2,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "line_style": 0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "name": "RF",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.38,
+        "via_diameter": 0.6,
+        "via_drill": 0.3,
+        "wire_width": 6
+      },
+      {
+        "bus_width": 12,
+        "clearance": 0.2,
+        "diff_pair_gap": 0.13,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "line_style": 0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "name": "USB",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.25,
+        "via_diameter": 0.6,
+        "via_drill": 0.3,
+        "wire_width": 6
+      },
+      {
+        "bus_width": 12,
+        "clearance": 0.2,
+        "diff_pair_gap": 0.2,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "line_style": 0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "name": "Power",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.5,
+        "via_diameter": 0.6,
+        "via_drill": 0.3,
+        "wire_width": 6
+      }
+    ],
+    "meta": {
+      "version": 4
+    },
+    "netclass_patterns": [
+      {
+        "netclass": "RF",
+        "pattern": "*ANT_RF"
+      },
+      {
+        "netclass": "RF",
+        "pattern": "*RF_A"
+      },
+      {
+        "netclass": "RF",
+        "pattern": "*RF_B"
+      },
+      {
+        "netclass": "RF",
+        "pattern": "RF_IN"
+      },
+      {
+        "netclass": "USB",
+        "pattern": "USB_DP"
+      },
+      {
+        "netclass": "USB",
+        "pattern": "USB_DM"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "+3V3"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "VBUS"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "VSYS"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "V_BCKP"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "VEXT_5V"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "VBCKP_EXT"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "VDD_RF"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "VDD_EXT"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "*ANT_PWR"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "*ANT_BIAS"
+      }
+    ]
+  },
+  "pcbnew": {
+    "page_layout_descr_file": ""
+  },
+  "schematic": {
+    "annotate_start_num": 0,
+    "legacy_lib_dir": "",
+    "legacy_lib_list": [],
+    "net_format_name": "",
+    "page_layout_descr_file": "",
+    "plot_directory": "",
+    "subpart_first_id": 65,
+    "subpart_id_separator": 0
+  },
+  "sheets": [
+    [
+      "5b48cc92-ecb5-59d8-98d2-63c4cf129d0d",
+      "Root"
+    ],
+    [
+      "475bb503-6ff5-5f63-8823-f25798754dd8",
+      "Power"
+    ],
+    [
+      "67735122-fc46-5aa5-98ef-69f629b4c190",
+      "GNSS"
+    ],
+    [
+      "fe13209b-d5d0-5347-9bf2-c59da95a4041",
+      "RF"
+    ],
+    [
+      "a5330b8d-664b-5a6a-b4ac-80a7457ba5da",
+      "USB"
+    ],
+    [
+      "b01f4cb7-7140-5415-8ec4-0afc81d6b8cf",
+      "IO"
+    ]
+  ],
+  "text_variables": {}
+}

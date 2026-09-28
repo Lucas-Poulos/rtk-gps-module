@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "rtk-gps-module")(type "KiCad")(uri "${KIPRJMOD}/lib/rtk-gps-module.pretty")(options "")(descr "LC29H land pattern, SAW land pattern, castellated edge"))
+)
