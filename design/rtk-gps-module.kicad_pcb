@@ -10,7 +10,7 @@
 	(layers
 		(0 "F.Cu" signal)
 		(4 "In1.Cu" power "GND")
-		(6 "In2.Cu" signal)
+		(6 "In2.Cu" power "+3V3")
 		(2 "B.Cu" signal)
 		(9 "F.Adhes" user "F.Adhesive")
 		(11 "B.Adhes" user "B.Adhesive")
@@ -16252,6 +16252,27 @@
 		(layer "B.Cu")
 		(uuid "9347a678-d953-52b8-8ac1-76e7f004cb19")
 		(name "gnd_bottom_L4")
+		(hatch edge 0.5)
+		(connect_pads
+			(clearance 0.25)
+		)
+		(min_thickness 0.25)
+		(fill
+			(thermal_gap 0.3)
+			(thermal_bridge_width 0.6)
+			(island_removal_mode 1)
+		)
+		(polygon
+			(pts
+				(xy 50.5 35.5) (xy 90.14 35.5) (xy 90.14 75.14) (xy 50.5 75.14)
+			)
+		)
+	)
+	(zone
+		(net "+3V3")
+		(layer "In2.Cu")
+		(uuid "864a40fa-9d7b-51fb-b528-1c790cf21cae")
+		(name "pwr_plane_L3")
 		(hatch edge 0.5)
 		(connect_pads
 			(clearance 0.25)
