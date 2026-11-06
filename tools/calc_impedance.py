@@ -51,6 +51,9 @@ Usage
 from __future__ import annotations
 
 import math
+from pathlib import Path
+
+PCB = Path(__file__).resolve().parent.parent / "design" / "rtk-gps-module.kicad_pcb"
 
 # --- stackup ---------------------------------------------------------------
 H_PREPREG = 0.2104      # mm, L1 to L2
@@ -61,6 +64,58 @@ TARGET_Z0 = 50.0        # ohm
 # --- the answer, rounded to something a fab can actually hold --------------
 RF_TRACE_W = 0.38       # mm
 RF_GAP = GAP
+
+
+def read_board_stackup(pcb_path) -> dict:
+    """Read the stackup the board actually declares.
+
+    The model constants above describe JLC04161H-3313. Nothing used to
+    check that the board agreed with them, so `make check` could pass while
+    the board was built on a stackup the 0.38 mm width is wrong for -- which
+    is exactly what happened: the board sat at two copper layers, where the
+    reference plane is ~1.5 mm down rather than 0.2104 mm, for several
+    commits without any check noticing.
+
+    Returns the copper layer names in physical order, plus the thickness and
+    permittivity of the dielectric between F.Cu and the next copper layer
+    down. That dielectric is `h` for the CPWG model; its reference plane is
+    what makes the line 50 ohm.
+    """
+    import re
+    text = Path(pcb_path).read_text()
+
+    copper = re.findall(r'^\t\t\(\d+ "((?:F|In\d+|B)\.Cu)"', text, re.M)
+
+    m = re.search(r"\n\t\t\(stackup\n(.*?)\n\t\t\)\n", text, re.S)
+    if not m:
+        return {"copper_layers": copper, "h_mm": None, "er": None,
+                "reference_layer": None, "has_stackup": False}
+
+    entries = re.findall(
+        r'\(layer "([^"]+)"\s*\(type "([^"]+)"\)'
+        r'(?:\s*\(thickness ([\d.]+)\))?'
+        r'(?:\s*\(material "[^"]*"\))?'
+        r'(?:\s*\(epsilon_r ([\d.]+)\))?',
+        m.group(1))
+
+    h = er = ref = None
+    seen_fcu = False
+    for name, _type, thick, eps in entries:
+        if name == "F.Cu":
+            seen_fcu = True
+            continue
+        if not seen_fcu:
+            continue
+        if name.startswith("dielectric"):
+            if h is None:
+                h = float(thick) if thick else None
+                er = float(eps) if eps else None
+        elif name.endswith(".Cu"):
+            ref = name
+            break
+
+    return {"copper_layers": copper, "h_mm": h, "er": er,
+            "reference_layer": ref, "has_stackup": True}
 
 
 def _K(k: float) -> float:
@@ -142,6 +197,24 @@ def main() -> int:
     print(f"\n  guided wavelength at L1 (1575.42 MHz): {lam:.1f} mm")
     print(f"  keep the antenna track under lambda/20 = {lam / 20:.1f} mm "
           f"to make its length irrelevant")
+
+    print("\n  --- what the board actually declares ---")
+    if not PCB.exists():
+        print(f"    no board at {PCB}, nothing to compare against")
+        return 0
+    s = read_board_stackup(PCB)
+    print(f"    copper layers: {len(s['copper_layers'])} "
+          f"({', '.join(s['copper_layers'])})")
+    if not s["has_stackup"]:
+        print("    no stackup block -- the board does not declare one")
+        return 0
+    print(f"    reference plane under F.Cu: {s['reference_layer']}")
+    print(f"    h  = {s['h_mm']} mm   (model assumes {H_PREPREG})")
+    print(f"    er = {s['er']}        (model assumes {ER})")
+    if s["h_mm"]:
+        z_real, _ = cbcpw(RF_TRACE_W, h=s["h_mm"], er=s["er"] or ER)
+        print(f"    W = {RF_TRACE_W} mm on the declared stackup: "
+              f"{z_real:.2f} ohm")
     return 0
 
 

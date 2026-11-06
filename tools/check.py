@@ -213,10 +213,36 @@ def check_impedance() -> None:
         f"RF track width is {rf['track_width']} mm but calc_impedance "
         f"derives {ci.RF_TRACE_W} mm. Change one to match the other -- "
         f"see docs/impedance.md")
-    z0, _ = ci.cbcpw(rf["track_width"])
+    # The model agreeing with itself proves nothing. Read the stackup the
+    # board actually declares and compute Z0 from THAT -- otherwise this
+    # check cannot fail, which is how the board sat at two copper layers
+    # while the width assumed four.
+    s = ci.read_board_stackup(DESIGN / "rtk-gps-module.kicad_pcb")
+    n_cu = len(s["copper_layers"])
+    if not chk(n_cu >= 4,
+               f"the board declares {n_cu} copper layers; a CPWG at "
+               f"{ci.H_PREPREG} mm needs a reference plane on an inner "
+               f"layer -- see docs/impedance.md"):
+        return
+    if not chk(s["has_stackup"],
+               "the board declares no stackup block, so the dielectric "
+               "height the 50 ohm width depends on is unverifiable"):
+        return
+    chk(s["reference_layer"] is not None,
+        "no copper layer found under F.Cu to act as the RF reference plane")
+    chk(s["h_mm"] is not None and abs(s["h_mm"] - ci.H_PREPREG) < 1e-6,
+        f"the board puts {s['reference_layer']} {s['h_mm']} mm under F.Cu "
+        f"but calc_impedance solves for {ci.H_PREPREG} mm")
+    chk(s["er"] is not None and abs(s["er"] - ci.ER) < 1e-6,
+        f"the board declares er={s['er']} but calc_impedance assumes "
+        f"{ci.ER}")
+
+    z0, _ = ci.cbcpw(rf["track_width"],
+                     h=s["h_mm"] or ci.H_PREPREG,
+                     er=s["er"] or ci.ER)
     chk(abs(z0 - 50.0) / 50.0 < 0.05,
-        f"an RF track of {rf['track_width']} mm is {z0:.1f} ohm, "
-        f"more than 5% off 50")
+        f"an RF track of {rf['track_width']} mm on the stackup the board "
+        f"declares is {z0:.1f} ohm, more than 5% off 50")
 
 
 def main() -> int:
