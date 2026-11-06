@@ -1,0 +1,32 @@
+# Custom design rules -- rtk-gps-module.
+#
+# KiCad auto-loads this file because its name matches the project name.
+# Board-wide minimums live in the project file (Board Setup > Design Rules
+# > Constraints); this file only carves out the one case where a board-wide
+# rule is wrong by construction.
+#
+# Syntax follows the working files in stm32mp157-devkit and red-light-panel.
+
+(version 1)
+
+# A castellated pad is a plated half-hole: the board outline router runs
+# straight through the middle of the drill, so the pad MUST reach the edge.
+# The board-wide 0.5 mm copper-to-edge rule is correct for every other
+# object on this board and wrong for these 24 pads, which it flags as 24
+# errors that can never be cleared.
+#
+# Without this carve-out DRC is unusable as a gate: 24 permanent errors
+# bury whatever real error appears next during routing.
+#
+# Scoped by courtyard rather than by net, because the castellated pads
+# carry ordinary nets (GND, 5V_IN, TXD1 ...) that must keep full edge
+# clearance everywhere else on the board.
+# No positive minimum can satisfy this: the pad does not merely touch the
+# outline, it crosses it, so the measured clearance is negative and
+# (min 0mm) still fails. The constraint has to be switched off for these
+# pads rather than relaxed.
+(rule "castellated pads reach the board edge by design"
+	(severity ignore)
+	(constraint edge_clearance)
+	(condition "A.insideCourtyard('J501') || A.insideCourtyard('J502')")
+)
