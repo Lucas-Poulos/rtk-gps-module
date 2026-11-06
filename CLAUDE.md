@@ -128,6 +128,35 @@ lands on its own `unconnected-` net.
 - **BAT54C**: pins 1 and 2 are the anodes, **pin 3 is the common cathode**.
 - **LEDs and diodes**: KiCad draws **pin 1 = cathode**.
 
+### U101's lib_symbol_mismatch is permanent, and must stay
+
+ERC reports `lib_symbol_mismatch` on U101 (`Regulator_Linear:AP2112K-3.3`)
+and it is the one warning that should never be "fixed".
+
+The library symbol is derived -- `(extends "AP2204K-1.5")` -- so it carries
+no pins of its own. The schematic caches a flattened copy. Comparing the
+two:
+
+| pin | name | type       | library    | cached      |
+|-----|------|------------|------------|-------------|
+| 1   | VIN  | power_in   | -7.62,2.54 | -7.62,2.54  |
+| 2   | GND  | power_in   | 0,-7.62    | 0,-7.62     |
+| 3   | EN   | input      | -7.62,0    | -7.62,0     |
+| 4   | NC   | no_connect | 5.08,0     | **13.97,0** |
+| 5   | VOUT | power_out  | 7.62,2.54  | **13.97,2.54** |
+
+Pin numbers, names and electrical types are identical. Only the body width
+differs -- the cached symbol is wider, and the schematic's wires are drawn
+to x=13.97.
+
+Tools -> Update Symbols from Library would snap pins 4 and 5 back to the
+library geometry and **leave the VOUT wiring hanging in space**. The
+warning is the cost of the generator having emitted its own symbol
+geometry; the electrical content is correct and verified against the
+AP2112K SOT-23-5 pinout (VIN/GND/EN/NC/VOUT on 1-5).
+
+Leave it. ERC 1 warning is the floor for this project, not a defect.
+
 ### KiCad netclass patterns are wildcards, not regex
 
 `/^(ANT_RF|RF_A)$/` is accepted by the file format, shows up in the GUI,

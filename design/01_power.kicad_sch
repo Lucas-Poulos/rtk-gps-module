@@ -2822,10 +2822,6 @@
 		(uuid "7d4a02d6-a8f5-5e4e-b554-4b08dd0c7401")
 	)
 	(no_connect
-		(at 312.42 77.47)
-		(uuid "af6cda33-4575-509a-89ae-d89e82c20646")
-	)
-	(no_connect
 		(at 60.96 109.22)
 		(uuid "cb6eb4fe-7a65-56ae-8751-2b9be6a31282")
 	)
