@@ -48,6 +48,7 @@ column group — so **this does not gate layout**.
 | Price, DK EU qty 1  | €14.24        | €30.58         |
 | Stock               | 523           | 171            |
 | RTCM input          | not supported | supported      |
+| RTK / raw rate      | 1 Hz raw      | 1 Hz fix       |
 | EPOC                | yes           | no             |
 | VCC tracking        | 24 mA         | 30 mA          |
 | V_BCKP continuous   | 93 µA         | 74 µA          |
@@ -56,6 +57,13 @@ Choosing AA saves €16.34/board, roughly 45% of the BOM, and changes what
 the product *is*: it stops being "plug in, get centimetres" and becomes
 "raw observables, bring your own solver". That is a documentation and
 host-software job, not a board job.
+
+Rate is **not** a differentiator, contrary to how this was first written
+up. Quectel's DR&RTK application note states the DA fixes at 1 Hz and only
+1 Hz; the AA's raw observations are capped at the same 1 Hz. Faster RTK
+means the EA, which is a different and dearer part, not a setting. So the
+real costs of choosing AA are the missing GLONASS carrier phase and the
+RTKLIB integration work — not throughput.
 
 Gates: BOM, README, pinout table, product description, host software.
 
@@ -338,7 +346,7 @@ time-to-fix and the baseline to the base station.
 | RF chain underperforms, low C/N₀ | **High** | Unverifiable before hardware. VNA at 5.6 is the only real check |
 | Castellated edge mis-fabricated | Medium | New 0.6 mm geometry is untested. Inspect first article before assembling all five |
 | L1-only SAW substituted in a later order | Medium | Already documented in the BOM; keep it there |
-| Host RTK integration (if AA) | Medium | RTKLIB is proven with LC29H, but 1 Hz raw and no GLONASS phase constrain it |
+| Host RTK integration (if AA) | Medium | RTKLIB is proven with LC29H. No GLONASS carrier phase is the real constraint; the 1 Hz raw rate is not, since the DA also fixes at 1 Hz |
 | USB-C mechanical fit | Low | Resolved at 0.2 before routing |
 
 ---
@@ -346,6 +354,10 @@ time-to-fix and the baseline to the base station.
 ## What this plan does not cover
 
 - Enclosure, mounting, environmental sealing.
+- Site survey of the actual deployment areas. Testing is around Boston,
+  where MaCORS covers everything; whether the places that need centimetres
+  have network coverage is unanswered, and if they do not the answer is a
+  second board populated as `LC29HBS`.
 - Any regulatory testing beyond EMC pre-compliance. There is no
   intentional radiator, which keeps this small, but "small" is not "none".
 - Production test fixturing. `TE-001` already notes thin test-point

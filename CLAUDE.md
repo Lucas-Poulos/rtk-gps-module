@@ -92,6 +92,39 @@ The symbol follows Table 6. Because the reading is contested, pins 15, 16,
 18 and 19 reach the castellated edge **only through DNP links**, so the
 board is right either way. Do not "clean that up".
 
+### RTK runs at 1 Hz on the DA, whatever the rate field says
+
+Quectel's *LC29H (BA,CA,DA,EA) DR&RTK Application Note*:
+
+> LC29H (DA) only supports RTK (update rate: 1 Hz).
+> LC29H (EA) only supports RTK (update rate: 1-10 Hz, 10 Hz by default).
+
+The 10 Hz number that appears in summaries of this part is the ordinary
+position rate, not the RTK fix rate. The README claimed "up to 10 Hz" in
+its spec table for a board whose whole purpose is RTK; that is corrected.
+
+Two consequences worth keeping:
+
+- Faster than 1 Hz RTK is an **EA**, not a configuration change. The EA is
+  about 25 % dearer than the DA.
+- The **AA gives up nothing on rate**. Its raw observations cap at 1 Hz,
+  which is exactly what the DA fixes at, so rate is not an argument against
+  moving the RTK engine to the host.
+
+### Correction sources and RTCM compatibility
+
+Verified against the application note -- the DA accepts 1005, 1006, and
+MSM4/MSM7 for GPS, GLONASS, Galileo, QZSS and BeiDou (1074/1077,
+1084/1087, 1094/1097, 1114/1117, 1124/1127).
+
+Target use is the US, with testing around Boston. **MaCORS** -- MassDOT's
+free 22-station SpiderNet network across all 14 Massachusetts counties --
+serves RTCM 3.1 and RTCM 3.2 MSM4, so it drops straight in with no
+translation. Register at `macors.massdot.state.ma.us`.
+
+Outside network coverage, `LC29HBS` is the base-station variant and shares
+this footprint, so a second board off the same fab run is the base.
+
 ### Pin 7 (VDD_EXT) and pin 9 (VDD_RF) are OUTPUTS
 
 Table 6 types them `PO`. Both are typed `power_out` in the symbol so ERC

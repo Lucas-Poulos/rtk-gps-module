@@ -38,9 +38,10 @@ nothing to license, nothing to certify, and one less thing to pay for.
 | Receiver | Quectel LC29H (DA), dual-band RTK rover |
 | Bands | L1 / E1 / B1 / G1 **and** L5 / E5a / B2a |
 | Constellations | GPS, GLONASS, Galileo, BeiDou, QZSS, SBAS |
-| RTK accuracy | ~1–2 cm CEP, open sky, within 1 km of the base |
-| Update rate | up to 10 Hz |
-| Corrections in | RTCM3 over UART1 |
+| RTK accuracy | ~1–2 cm CEP, open sky |
+| **RTK fix rate** | **1 Hz** — the DA does not go faster, see below |
+| Position rate, no RTK | up to 10 Hz |
+| Corrections in | RTCM3 over UART1 — MSM4 or MSM7, plus 1005/1006 |
 | Timing out | 1PPS, rising-edge synchronised |
 | Supply | 5 V from USB-C **or** 5 V from the carrier board |
 | Logic | 3.3 V (plus a 1.8 V debug domain, see below) |
@@ -49,6 +50,61 @@ nothing to license, nothing to certify, and one less thing to pay for.
 
 The receiver is **88 % of the bill**. Everything else together is $1.56.
 Nothing but the receiver is worth cost-optimising.
+
+### RTK fixes at 1 Hz, and only 1 Hz
+
+Quectel's *LC29H (BA,CA,DA,EA) DR&RTK Application Note* is unambiguous:
+
+> LC29H (DA) only supports RTK (update rate: 1 Hz).
+> LC29H (EA) only supports RTK (update rate: 1–10 Hz, 10 Hz by default).
+
+The 10 Hz figure quoted for these modules is the ordinary position rate.
+With RTK engaged, the DA produces **one fix per second**. If you need
+faster, the only variant that does it is the **EA**, which costs roughly
+25 % more than the DA and is a different board cost, not a firmware
+setting.
+
+This also means the **AA variant gives up nothing on rate**. Its raw
+observations are capped at 1 Hz, which is exactly what the DA fixes at —
+so "the AA is slower" is not a real objection to moving the RTK engine
+onto the host.
+
+### Where the corrections come from
+
+The board has no radio, so RTCM3 arrives over UART1 from whatever the host
+can reach. In the United States most states run a free CORS network.
+
+In Massachusetts that is **MaCORS**, MassDOT's 22-station SpiderNet
+network covering all 14 counties, free after registration at
+`macors.massdot.state.ma.us`. It serves RTCM 3.1 and RTCM 3.2 MSM4.
+
+That is directly compatible — no translation layer. The DA accepts:
+
+| Message | |
+|---|---|
+| 1005 / 1006 | Stationary RTK Reference Station ARP |
+| 1074 / 1077 | GPS MSM4 / MSM7 |
+| 1084 / 1087 | GLONASS MSM4 / MSM7 |
+| 1094 / 1097 | Galileo MSM4 / MSM7 |
+| 1114 / 1117 | QZSS MSM4 / MSM7 |
+| 1124 / 1127 | BeiDou MSM4 / MSM7 |
+
+If the network offers a VRS mount point it synthesises a virtual base at
+your position, so the usual "stay within ~1 km of the base" rule stops
+applying — the effective baseline is short wherever you are inside the
+network. Outside network coverage that rule returns, and the answer is
+your own base: **`LC29HBS` is the base-station variant and shares this
+footprint**, so a second board off the same fab run becomes one.
+
+### Multipath will dominate your results before the board does
+
+RTK resolves carrier phase, and carrier phase is ruined by reflections.
+A signal bounced off a glass facade arrives with corrupted phase, which
+costs you the fix — or worse, buys a confident but wrong one.
+
+Test open-sky first and separate the two questions: *does the board work*
+and *does it work where I need it*. Debugging the former in an urban
+canyon wastes days.
 
 ## Everything else is discrete
 
